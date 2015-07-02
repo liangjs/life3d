@@ -1,5 +1,5 @@
-LIBS = `wx-config --libs core,base,gl`
-OBJ = app.o main.o
+LIBS = `wx-config --libs core,base,gl` -lGL
+OBJ = app.o main.o hash.o
 BIN = life3d
 CXXFLAGS = `wx-config --cxxflags` -g -Wall
 
@@ -11,6 +11,8 @@ app.o: app.cpp app.h
 	g++ $< -c -o $@ ${CXXFLAGS}
 main.o: main.cpp main.h
 	g++ $< -c -o $@ ${CXXFLAGS}
-
+hash.o: hash.cpp hash.h
+	g++ $< -c -o $@ ${CXXFLAGS}
+	
 clean:
 	rm -f ${OBJ}

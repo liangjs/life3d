@@ -33,5 +33,11 @@ void Board::run()
 
 bool Board::getStatus(int cnt, int old)
 {
-
+    if (cnt > 13)
+        return false;
+    if (cnt > 9)
+        return true;
+    if (cnt > 6)
+        return old;
+    return false;
 }

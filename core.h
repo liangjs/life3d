@@ -30,4 +30,17 @@ public:
     bool getStatus(int cnt, bool old);
 };
 
+struct DPoint
+{
+    double x, y, z;
+    DPoint(double _x = 0, double _y = 0, double _z = 0)
+        : x(_x), y(_y), z(_z) {}
+};
+
+DPoint rotate(const DPoint &p, const DPoint &v, double angle);
+DPoint cross(const DPoint &a, const DPoint &b);
+double dot(const DPoint &a, const DPoint &b);
+double length(const DPoint &a);
+DPoint operator+ (const DPoint &a, const DPoint &b);
+DPoint operator- (const DPoint &a, const DPoint &b);
 #endif

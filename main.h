@@ -3,6 +3,7 @@
 
 #include <wx/wx.h>
 #include <wx/glcanvas.h>
+#include "core.h"
 
 class glcanvas;
 
@@ -25,13 +26,27 @@ class glcanvas: public wxGLCanvas
 {
 public:
     glcanvas(life3dFrame *parent);
+    ~glcanvas();
 private:
+    static const int TimerID = 1000;
+    wxTimer timer;
+    wxSize clientsize;
     bool glinited;
     wxGLContext *glRC;
+    double view_range;
+    DPoint center, direct;
+    wxPoint dragS;
+    void moveToView();
+    void glResize();
+    void showGrid();
     void glinit();
     void OnPaint(wxPaintEvent &event);
     void OnKey(wxKeyEvent &event);
     void OnSize(wxSizeEvent &event);
+    void OnMouseWheel(wxMouseEvent &event);
+    void OnMouseMove(wxMouseEvent &event);
+    void OnRightDown(wxMouseEvent &event);
+    void OnTimer(wxTimerEvent &event);
     DECLARE_EVENT_TABLE()
 };
 #endif

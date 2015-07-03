@@ -27,7 +27,7 @@ private:
     std::unordered_set<Point, HashPoint> *data, *tmp;
 public:
     void run();
-    bool getStatus(int cnt, int old);
+    bool getStatus(int cnt, bool old);
 };
 
 #endif

@@ -31,7 +31,7 @@ void Board::run()
     std::swap(tmp, data);
 }
 
-bool Board::getStatus(int cnt, int old)
+bool Board::getStatus(int cnt, bool old)
 {
     if (cnt > 13)
         return false;

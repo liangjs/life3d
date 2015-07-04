@@ -153,7 +153,6 @@ void glcanvas::OnMouseMove(wxMouseEvent &event)
         else
         {
             DPoint v = cross(direct, DPoint(0, 0, -1));
-            double angle = acos(-direct.z / length(direct));
             if (dcmp(length(v)) == 0)
                 v = DPoint(0, 1, 0);
             DPoint p;
@@ -188,54 +187,42 @@ void glcanvas::OnPaint(wxPaintEvent &event)
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     gluLookAt(center.x, center.y, center.z, center.x + direct.x, center.y + direct.y, center.z + direct.z, head.x, head.y, head.z);
+    showLife();
+    a.run();
     glFlush();
     SwapBuffers();
 }
 
-void glcanvas::showGrid()
+void glcanvas::showLife()
 {
-    int width = clientsize.x * view_range, height = clientsize.y * view_range;
-    ++width, ++height;
-    int deep = std::min(width, height);
-    width = height = std::max(width, height);
-    /*glPushAttrib(GL_COLOR_BUFFER_BIT);
-    glColor4f(0.3, 0.3, 0.3, 0.3);
-    glBegin(GL_LINES);
-    for (int x = -width; x <= width; ++x)
-        for (int y = -height; y <= height; ++y)
-        {
-            glVertex3d(x, y, -deep);
-            glVertex3d(x, y, deep);
-        }
-    for (int x = -width; x <= width; ++x)
-        for (int z = -deep; z <= deep; ++z)
-        {
-            glVertex3d(x, -height, z);
-            glVertex3d(x, height, z);
-        }
-    for (int y = -height; y <= height; ++y)
-        for (int z = -deep; z <= deep; ++z)
-        {
-            glVertex3d(-width, y, z);
-            glVertex3d(width, y, z);
-        }
-    glEnd();
-    glPopAttrib();*/
+    auto data = a.getData();
+    for (auto i = data->begin(); i != data->end(); ++i)
+    {
+        double x = i->x, y = i->y, z = i->z;
+        showRec(DPoint(x + 0.9, y + 0.9, z + 0.9), DPoint(x + 0.9, y - 0.9, z + 0.9), DPoint(x - 0.9, y - 0.9, z + 0.9), DPoint(x - 0.9, y + 0.9, z + 0.9));
+        showRec(DPoint(x + 0.9, y + 0.9, z - 0.9), DPoint(x + 0.9, y - 0.9, z - 0.9), DPoint(x - 0.9, y - 0.9, z - 0.9), DPoint(x - 0.9, y + 0.9, z - 0.9));
+        showRec(DPoint(x + 0.9, y + 0.9, z + 0.9), DPoint(x + 0.9, y + 0.9, z - 0.9), DPoint(x + 0.9, y - 0.9, z - 0.9), DPoint(x + 0.9, y - 0.9, z + 0.9));
+        showRec(DPoint(x - 0.9, y + 0.9, z + 0.9), DPoint(x - 0.9, y + 0.9, z - 0.9), DPoint(x - 0.9, y - 0.9, z - 0.9), DPoint(x - 0.9, y - 0.9, z + 0.9));
+        showRec(DPoint(x + 0.9, y + 0.9, z + 0.9), DPoint(x + 0.9, y + 0.9, z - 0.9), DPoint(x - 0.9, y + 0.9, z - 0.9), DPoint(x - 0.9, y + 0.9, z + 0.9));
+        showRec(DPoint(x + 0.9, y - 0.9, z + 0.9), DPoint(x + 0.9, y - 0.9, z - 0.9), DPoint(x - 0.9, y - 0.9, z - 0.9), DPoint(x - 0.9, y - 0.9, z + 0.9));
+    }
+}
 
-    glColor3f(1, 0, 0);
-    glBegin(GL_LINES);
-    glVertex3d(0, 0, 0);
-    glVertex3d(1000, 0, 0);
+void glcanvas::showRec(const DPoint &p1, const DPoint &p2, const DPoint &p3, const DPoint &p4)
+{
+    glColor4f(0.6, 0.6, 0, 1);
+    glBegin(GL_LINE_LOOP);
+    glVertex3d(p1.x, p1.y, p1.z);
+    glVertex3d(p2.x, p2.y, p2.z);
+    glVertex3d(p3.x, p3.y, p3.z);
+    glVertex3d(p4.x, p4.y, p4.z);
     glEnd();
-    glColor3f(0, 1, 0);
-    glBegin(GL_LINES);
-    glVertex3d(0, 0, 0);
-    glVertex3d(0, 1000, 0);
-    glEnd();
-    glColor3f(0, 0, 1);
-    glBegin(GL_LINES);
-    glVertex3d(0, 0, 0);
-    glVertex3d(0, 0, 1000);
+    glColor4f(0.7, 0.7, 0.7, 0.7);
+    glBegin(GL_POLYGON);
+    glVertex3d(p1.x, p1.y, p1.z);
+    glVertex3d(p2.x, p2.y, p2.z);
+    glVertex3d(p3.x, p3.y, p3.z);
+    glVertex3d(p4.x, p4.y, p4.z);
     glEnd();
 }
 
@@ -252,6 +239,7 @@ void glcanvas::glResize()
     glViewport(0, 0, width, height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
+    width = height = 100;
     int deep = std::min(width, height);
     width = height = std::max(width, height);
     glOrtho(-width * view_range, width * view_range, -height * view_range, height * view_range, -deep * view_range, deep * view_range);

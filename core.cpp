@@ -12,6 +12,17 @@ int HashPoint::operator()(const Point &a)const
     return (fx << 22) ^ (fy << 11) ^ fz;
 }
 
+Board::Board()
+{
+    data = new std::unordered_set<Point, HashPoint>;
+    tmp = new std::unordered_set<Point, HashPoint>;
+    for (int i = -10; i <= 30; ++i)
+        for (int j = -20; j <= 20; ++j)
+            for (int k = -10; k <= 10; ++k)
+                if (rand() % 2)
+                    data->insert(Point(i, j, k));
+}
+
 static const int dir[27][3] =
 {
     {0, 0, 0}, {0, 0, 1}, {0, 0, -1}, {0, 1, 0}, {0, 1, 1}, {0, 1, -1}, {0, -1, 0}, {0, -1, 1}, {0, -1, -1}

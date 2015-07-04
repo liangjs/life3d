@@ -25,9 +25,11 @@ class Board
 {
 private:
     std::unordered_set<Point, HashPoint> *data, *tmp;
-public:
-    void run();
     bool getStatus(int cnt, bool old);
+public:
+    Board();
+    void run();
+    const std::unordered_set<Point, HashPoint> *getData() { return data; }
 };
 
 struct DPoint

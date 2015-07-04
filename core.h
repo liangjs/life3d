@@ -43,4 +43,6 @@ double dot(const DPoint &a, const DPoint &b);
 double length(const DPoint &a);
 DPoint operator+ (const DPoint &a, const DPoint &b);
 DPoint operator- (const DPoint &a, const DPoint &b);
+
+int dcmp(double x, double y = 0);
 #endif

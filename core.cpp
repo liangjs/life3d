@@ -88,3 +88,10 @@ DPoint operator- (const DPoint &a, const DPoint &b)
 {
     return DPoint(a.x - b.x, a.y - b.y, a.z - b.z);
 }
+
+int dcmp(double x, double y)
+{
+    static const double eps = 1e-8;
+    double t = x - y;
+    return (t > eps) - (t < -eps);
+}

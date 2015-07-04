@@ -29,13 +29,13 @@ public:
     ~glcanvas();
 private:
     static const int TimerID = 1000;
-    wxTimer timer;
     wxSize clientsize;
     bool glinited;
     wxGLContext *glRC;
     double view_range;
     DPoint center, direct;
     wxPoint dragS;
+    wxTimer timer;
     void moveToView();
     void glResize();
     void showGrid();

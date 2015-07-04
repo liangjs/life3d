@@ -84,7 +84,7 @@ void glcanvas::OnTimer(wxTimerEvent &event)
 void glcanvas::OnKey(wxKeyEvent &event)
 {
     int key = event.GetKeyCode();
-    life3dFrame *parent = (life3dFrame*)GetParent();
+    life3dFrame *parent = (life3dFrame *)GetParent();
     if (key == '+')
     {
         if (parent->speed * 2LL <= INT_MAX)
@@ -130,16 +130,18 @@ void glcanvas::OnMouseMove(wxMouseEvent &event)
             wxPoint dragT(event.GetX(), event.GetY());
             if (event.ControlDown())
             {
-                
+
             }
             else
             {
-                DPoint v = cross(DPoint(0, 0, -1), direct);
+                DPoint v = cross(direct, DPoint(0, 0, -1));
                 double angle = acos(-direct.z / length(direct));
+                if (dcmp(length(v)) == 0)
+                    v = DPoint(0, 1, 0);
                 DPoint p;
-                p.x = (dragT.x - dragS.x) * view_range;
+                p.x = (dragS.x - dragT.x) * view_range;
                 p.y = (dragT.y - dragS.y) * view_range;
-                center = rotate(p, v, -angle) + center;
+                center = center + rotate(p, v, -angle);
             }
             dragS = dragT;
         }
@@ -167,8 +169,10 @@ void glcanvas::OnPaint(wxPaintEvent &event)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    //direct=DPoint(1,0.3,0.2);
     moveToView();
+    static double x = 0;
+    direct = DPoint(sin(x), 0, -cos(x));
+    x += 0.01;
     if (view_range <= 0.05)
         showGrid();
     glFlush();
@@ -177,10 +181,12 @@ void glcanvas::OnPaint(wxPaintEvent &event)
 
 void glcanvas::moveToView()
 {
-    glTranslated(-center.x, -center.y, -center.z);
     double angle = acos(-direct.z / length(direct));
-    DPoint v = cross(DPoint(0, 0, -1), direct);
+    DPoint v = cross(direct, DPoint(0, 0, -1));
+    if (dcmp(length(v)) == 0 && direct.z > 0)
+        v = DPoint(0, 1, 0);
     glRotated(angle / M_PI * 180, v.x, v.y, v.z);
+    glTranslated(-center.x, -center.y, -center.z);
 }
 
 void glcanvas::showGrid()
@@ -211,6 +217,22 @@ void glcanvas::showGrid()
         }
     glEnd();
     glPopAttrib();
+
+    glColor3f(1, 0, 0);
+    glBegin(GL_LINES);
+    glVertex3d(0, 0, 0);
+    glVertex3d(1000, 0, 0);
+    glEnd();
+    glColor3f(0, 1, 0);
+    glBegin(GL_LINES);
+    glVertex3d(0, 0, 0);
+    glVertex3d(0, 1000, 0);
+    glEnd();
+    glColor3f(0, 0, 1);
+    glBegin(GL_LINES);
+    glVertex3d(0, 0, 0);
+    glVertex3d(0, 0, 1000);
+    glEnd();
 }
 
 void glcanvas::glinit()

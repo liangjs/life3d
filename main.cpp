@@ -66,17 +66,19 @@ BEGIN_EVENT_TABLE(glcanvas, wxGLCanvas)
 END_EVENT_TABLE()
 
 glcanvas::glcanvas(life3dFrame *parent)
-    : wxGLCanvas(parent, wxID_ANY, NULL, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE, wxEmptyString), glinited(false), view_range(0.03), timer(this, TimerID)
+    : wxGLCanvas(parent, wxID_ANY, NULL, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE, wxEmptyString), glinited(false), view_range(0.3), timer(this, TimerID)
 {
     glRC = new wxGLContext(this);
     timer.Start(1);
     direct = DPoint(0, 0, -1);
     head = DPoint(0, 1, 0);
+    a = new Board;
 }
 
 glcanvas::~glcanvas()
 {
     delete glRC;
+    delete a;
 }
 
 void glcanvas::OnTimer(wxTimerEvent &event)
@@ -121,7 +123,7 @@ void glcanvas::OnMouseWheel(wxMouseEvent &event)
     }
     while (wheel_lines > 0)
     {
-        view_range = std::max(view_range / 1.1, 1e-2);
+        view_range = std::max(view_range / 1.1, 1e-10);
         --wheel_lines;
     }
     glResize();
@@ -188,24 +190,26 @@ void glcanvas::OnPaint(wxPaintEvent &event)
     glLoadIdentity();
     gluLookAt(center.x, center.y, center.z, center.x + direct.x, center.y + direct.y, center.z + direct.z, head.x, head.y, head.z);
     showLife();
-    a.run();
+    a->run();
     glFlush();
     SwapBuffers();
 }
 
 void glcanvas::showLife()
 {
-    auto data = a.getData();
-    for (auto i = data->begin(); i != data->end(); ++i)
-    {
-        double x = i->x, y = i->y, z = i->z;
-        showRec(DPoint(x + 0.9, y + 0.9, z + 0.9), DPoint(x + 0.9, y - 0.9, z + 0.9), DPoint(x - 0.9, y - 0.9, z + 0.9), DPoint(x - 0.9, y + 0.9, z + 0.9));
-        showRec(DPoint(x + 0.9, y + 0.9, z - 0.9), DPoint(x + 0.9, y - 0.9, z - 0.9), DPoint(x - 0.9, y - 0.9, z - 0.9), DPoint(x - 0.9, y + 0.9, z - 0.9));
-        showRec(DPoint(x + 0.9, y + 0.9, z + 0.9), DPoint(x + 0.9, y + 0.9, z - 0.9), DPoint(x + 0.9, y - 0.9, z - 0.9), DPoint(x + 0.9, y - 0.9, z + 0.9));
-        showRec(DPoint(x - 0.9, y + 0.9, z + 0.9), DPoint(x - 0.9, y + 0.9, z - 0.9), DPoint(x - 0.9, y - 0.9, z - 0.9), DPoint(x - 0.9, y - 0.9, z + 0.9));
-        showRec(DPoint(x + 0.9, y + 0.9, z + 0.9), DPoint(x + 0.9, y + 0.9, z - 0.9), DPoint(x - 0.9, y + 0.9, z - 0.9), DPoint(x - 0.9, y + 0.9, z + 0.9));
-        showRec(DPoint(x + 0.9, y - 0.9, z + 0.9), DPoint(x + 0.9, y - 0.9, z - 0.9), DPoint(x - 0.9, y - 0.9, z - 0.9), DPoint(x - 0.9, y - 0.9, z + 0.9));
-    }
+    static const double bsize = 0.45;
+    auto data = a->getData();
+    for (auto j = data->pos.begin(); j != data->pos.end(); ++j)
+        for (auto i = data->a[*j].begin(); i != data->a[*j].end(); ++i)
+        {
+            double x = i->x, y = i->y, z = i->z;
+            showRec(DPoint(x + bsize, y + bsize, z + bsize), DPoint(x + bsize, y - bsize, z + bsize), DPoint(x - bsize, y - bsize, z + bsize), DPoint(x - bsize, y + bsize, z + bsize));
+            showRec(DPoint(x + bsize, y + bsize, z - bsize), DPoint(x + bsize, y - bsize, z - bsize), DPoint(x - bsize, y - bsize, z - bsize), DPoint(x - bsize, y + bsize, z - bsize));
+            showRec(DPoint(x + bsize, y + bsize, z + bsize), DPoint(x + bsize, y + bsize, z - bsize), DPoint(x + bsize, y - bsize, z - bsize), DPoint(x + bsize, y - bsize, z + bsize));
+            showRec(DPoint(x - bsize, y + bsize, z + bsize), DPoint(x - bsize, y + bsize, z - bsize), DPoint(x - bsize, y - bsize, z - bsize), DPoint(x - bsize, y - bsize, z + bsize));
+            showRec(DPoint(x + bsize, y + bsize, z + bsize), DPoint(x + bsize, y + bsize, z - bsize), DPoint(x - bsize, y + bsize, z - bsize), DPoint(x - bsize, y + bsize, z + bsize));
+            showRec(DPoint(x + bsize, y - bsize, z + bsize), DPoint(x + bsize, y - bsize, z - bsize), DPoint(x - bsize, y - bsize, z - bsize), DPoint(x - bsize, y - bsize, z + bsize));
+        }
 }
 
 void glcanvas::showRec(const DPoint &p1, const DPoint &p2, const DPoint &p3, const DPoint &p4)
@@ -239,9 +243,7 @@ void glcanvas::glResize()
     glViewport(0, 0, width, height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    width = height = 100;
     int deep = std::min(width, height);
-    width = height = std::max(width, height);
     glOrtho(-width * view_range, width * view_range, -height * view_range, height * view_range, -deep * view_range, deep * view_range);
     Refresh();
 }

@@ -1,7 +1,8 @@
 #include "core.h"
+#include <cstdlib>
 #include <cmath>
 
-int HashPoint::operator()(const Point &a)const
+int hash(const Point &a)
 {
     int ax = a.x ^ (a.x >> 32);
     int ay = a.y ^ (a.y >> 32);
@@ -9,18 +10,64 @@ int HashPoint::operator()(const Point &a)const
     int fx = (ax & 0xffff) ^ (ay >> 16);
     int fy = (ay & 0xffff) ^ (az >> 16);
     int fz = (az & 0xffff) ^ (ax >> 16);
-    return (fx << 22) ^ (fy << 11) ^ fz;
+    int f = (fx << 22) ^ (fy << 11) ^ fz;
+    return (f % HASHP + HASHP) % HASHP;
+}
+
+void HashSet::clear()
+{
+    for (auto i = pos.begin(); i != pos.end(); ++i)
+        a[*i].clear();
+    pos.clear();
+}
+
+void HashSet::insert(const Point &p, int hashkey, bool tested)
+{
+    if (hashkey == -1)
+        hashkey = hash(p);
+    if (!tested)
+        for (auto i = a[hashkey].begin(); i != a[hashkey].end(); ++i)
+            if (*i == p)
+                return;
+    if (a[hashkey].empty())
+        pos.push_back(hashkey);
+    a[hashkey].push_back(p);
+}
+
+bool HashSet::have(const Point &p, int hashkey)
+{
+    if (hashkey == -1)
+        hashkey = hash(p);
+    for (auto i = a[hashkey].begin(); i != a[hashkey].end(); ++i)
+        if (*i == p)
+            return true;
+    return false;
+}
+
+void HashMap::clear()
+{
+    for (auto i = pos.begin(); i != pos.end(); ++i)
+        a[*i].clear();
+    pos.clear();
 }
 
 Board::Board()
 {
-    data = new std::unordered_set<Point, HashPoint>;
-    tmp = new std::unordered_set<Point, HashPoint>;
-    for (int i = -10; i <= 30; ++i)
-        for (int j = -20; j <= 20; ++j)
-            for (int k = -10; k <= 10; ++k)
-                if (rand() % 2)
-                    data->insert(Point(i, j, k));
+    data = new HashSet;
+    tmp = new HashSet;
+    mp = new HashMap;
+    for (int i = -50; i <= 50; ++i)
+    for (int j = -30; j <= 10; ++j)
+    for (int k = -10; k <= 10; ++k)
+        if (rand() % 2)
+            data->insert(Point(i, j, k));
+}
+
+Board::~Board()
+{
+    delete data;
+    delete tmp;
+    delete mp;
 }
 
 static const int dir[27][3] =
@@ -32,18 +79,35 @@ static const int dir[27][3] =
 
 void Board::run()
 {
-    std::unordered_map<Point, int, HashPoint> cnt;
-    for (auto i = data->begin(); i != data->end(); ++i)
-        for (int j = 1; j < 27; ++j)
-            ++cnt[Point(i->x + dir[j][0], i->y + dir[j][1], i->z + dir[j][2])];
     tmp->clear();
-    for (auto i = cnt.begin(); i != cnt.end(); ++i)
-        if (getStatus(i->second, data->count(i->first)))
-            tmp->insert(i->first);
+    mp->clear();
+    for (auto i = data->pos.begin(); i != data->pos.end(); ++i)
+        for (auto j = data->a[*i].begin(); j != data->a[*i].end(); ++j)
+            for (int k = 1; k < 27; ++k)
+            {
+                Point p(j->x + dir[k][0], j->y + dir[k][1], j->z + dir[k][2]);
+                int hashkey = hash(p);
+                if (mp->a[hashkey].empty())
+                    mp->pos.push_back(hashkey);
+                bool done = false;
+                for (auto it = mp->a[hashkey].begin(); it != mp->a[hashkey].end(); ++it)
+                    if (it->first == p)
+                    {
+                        done = true;
+                        ++it->second;
+                        break;
+                    }
+                if (!done)
+                    mp->a[hashkey].push_back(std::make_pair(p, 1));
+            }
+    for (auto i = mp->pos.begin(); i != mp->pos.end(); ++i)
+        for (auto j = mp->a[*i].begin(); j != mp->a[*i].end(); ++j)
+            if (getStatus(j->second, data->have(j->first, *i)))
+                tmp->insert(j->first, *i, true);
     std::swap(tmp, data);
 }
 
-bool Board::getStatus(int cnt, bool old)
+inline bool Board::getStatus(int cnt, bool old)
 {
     if (cnt > 13)
         return false;

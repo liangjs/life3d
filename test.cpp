@@ -1,10 +1,11 @@
 #include <cstdlib>
-#include <unordered_set>
+#include <cstdio>
+#include <vector>
 using namespace std;
-unordered_set<int> a;
+vector<int> a;
 int main()
 {
-    for (int i = 0; i < 1e6; ++i)
-        a.insert(i);
+    a.resize(100);
+    printf("%d\n",sizeof(a));
     return 0;
 }

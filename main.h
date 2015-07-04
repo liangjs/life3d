@@ -36,7 +36,7 @@ private:
     DPoint center, direct, head;
     wxPoint dragS;
     wxTimer timer;
-    Board a;
+    Board *a;
     void glResize();
     void showRec(const DPoint &p1, const DPoint &p2, const DPoint &p3, const DPoint &p4);
     void showLife();

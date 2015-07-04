@@ -1,8 +1,8 @@
 #ifndef CORE_H
 #define CORE_H
 
-#include <unordered_set>
-#include <unordered_map>
+#include <vector>
+#include <utility>
 
 struct Point
 {
@@ -16,20 +16,37 @@ struct Point
     }
 };
 
-struct HashPoint
+int hash(const Point &a);
+
+#define HASHP 1000037
+
+struct HashSet
 {
-    int operator()(const Point &a)const;
+    std::vector<int> pos;
+    std::vector<Point> a[HASHP];
+    void clear();
+    void insert(const Point &p, int hashkey = -1, bool tested = false);
+    bool have(const Point &p, int hashkey = -1);
+};
+
+struct HashMap
+{
+    std::vector<int> pos;
+    std::vector< std::pair<Point, int> > a[HASHP];
+    void clear();
 };
 
 class Board
 {
 private:
-    std::unordered_set<Point, HashPoint> *data, *tmp;
-    bool getStatus(int cnt, bool old);
+    HashSet *data, *tmp;
+    HashMap *mp;
+    inline bool getStatus(int cnt, bool old);
 public:
     Board();
+    ~Board();
     void run();
-    const std::unordered_set<Point, HashPoint> *getData() { return data; }
+    const HashSet *getData() { return data; }
 };
 
 struct DPoint

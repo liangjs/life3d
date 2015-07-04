@@ -89,6 +89,26 @@ DPoint operator- (const DPoint &a, const DPoint &b)
     return DPoint(a.x - b.x, a.y - b.y, a.z - b.z);
 }
 
+DPoint operator* (const DPoint &a, double b)
+{
+    return DPoint(a.x * b, a.y * b, a.z * b);
+}
+
+DPoint operator/ (const DPoint &a, double b)
+{
+    return DPoint(a.x / b, a.y / b, a.z / b);
+}
+
+bool operator== (const DPoint &a, const DPoint &b)
+{
+    return dcmp(a.x, b.x) == 0 && dcmp(a.y, b.y) == 0 && dcmp(a.z, b.z) == 0;
+}
+
+bool operator!= (const DPoint &a, const DPoint &b)
+{
+    return dcmp(a.x, b.x) || dcmp(a.y, b.y) || dcmp(a.z, b.z);
+}
+
 int dcmp(double x, double y)
 {
     static const double eps = 1e-8;

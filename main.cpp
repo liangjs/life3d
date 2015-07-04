@@ -1,6 +1,7 @@
 #include "main.h"
 #include <climits>
 #include <GL/gl.h>
+#include <GL/glu.h>
 #include <algorithm>
 
 BEGIN_EVENT_TABLE(life3dFrame, wxFrame)
@@ -65,10 +66,12 @@ BEGIN_EVENT_TABLE(glcanvas, wxGLCanvas)
 END_EVENT_TABLE()
 
 glcanvas::glcanvas(life3dFrame *parent)
-    : wxGLCanvas(parent, wxID_ANY, NULL, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE, wxEmptyString), glinited(false), view_range(0.03), direct(0, 0, -1), timer(this, TimerID)
+    : wxGLCanvas(parent, wxID_ANY, NULL, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE, wxEmptyString), glinited(false), view_range(0.03), timer(this, TimerID)
 {
     glRC = new wxGLContext(this);
     timer.Start(1);
+    direct = DPoint(0, 0, -1);
+    head = DPoint(0, 1, 0);
 }
 
 glcanvas::~glcanvas()
@@ -101,6 +104,8 @@ void glcanvas::OnKey(wxKeyEvent &event)
             parent->fresh_speed();
         }
     }
+    else
+        event.Skip();
 }
 
 void glcanvas::OnMouseWheel(wxMouseEvent &event)
@@ -124,31 +129,44 @@ void glcanvas::OnMouseWheel(wxMouseEvent &event)
 
 void glcanvas::OnMouseMove(wxMouseEvent &event)
 {
-    if (event.Dragging())
-        if (event.RightIsDown())
+    if (!event.Dragging())
+        return;
+    if (event.RightIsDown())
+    {
+        wxPoint dragT(event.GetX(), event.GetY());
+        if (event.ControlDown())
         {
-            wxPoint dragT(event.GetX(), event.GetY());
-            if (event.ControlDown())
+            DPoint p;
+            p.x = double(dragT.x - dragS.x) / clientsize.x;
+            p.y = double(dragS.y - dragT.y) / clientsize.y;
+            DPoint v = cross(p, DPoint(0, 0, -1));
+            if (dcmp(length(v)))
             {
-
+                double angle = asin(length(p) / sqrt(2)) * 2;
+                DPoint newdir = rotate(DPoint(0, 0, -1), v, -angle);
+                DPoint newhead = rotate(DPoint(0, 1, 0), v, -angle);
+                DPoint Uy = head, Uz = direct * -1, Ux = cross(Uy, Uz);
+                direct = Ux * newdir.x + Uy * newdir.y + Uz * newdir.z;
+                head = Ux * newhead.x + Uy * newhead.y + Uz * newhead.z;
             }
-            else
-            {
-                DPoint v = cross(direct, DPoint(0, 0, -1));
-                double angle = acos(-direct.z / length(direct));
-                if (dcmp(length(v)) == 0)
-                    v = DPoint(0, 1, 0);
-                DPoint p;
-                p.x = (dragS.x - dragT.x) * view_range;
-                p.y = (dragT.y - dragS.y) * view_range;
-                center = center + rotate(p, v, -angle);
-            }
-            dragS = dragT;
         }
-        else if (event.LeftIsDown())
+        else
         {
-
+            DPoint v = cross(direct, DPoint(0, 0, -1));
+            double angle = acos(-direct.z / length(direct));
+            if (dcmp(length(v)) == 0)
+                v = DPoint(0, 1, 0);
+            DPoint p;
+            p.x = (dragS.x - dragT.x) * view_range * 1000 / clientsize.x;
+            p.y = (dragT.y - dragS.y) * view_range * 1000 / clientsize.y;
+            center = center + cross(head, direct * -1) * p.x + head * p.y;
         }
+        dragS = dragT;
+    }
+    else if (event.LeftIsDown())
+    {
+
+    }
     Refresh();
 }
 
@@ -169,24 +187,9 @@ void glcanvas::OnPaint(wxPaintEvent &event)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    moveToView();
-    static double x = 0;
-    direct = DPoint(sin(x), 0, -cos(x));
-    x += 0.01;
-    if (view_range <= 0.05)
-        showGrid();
+    gluLookAt(center.x, center.y, center.z, center.x + direct.x, center.y + direct.y, center.z + direct.z, head.x, head.y, head.z);
     glFlush();
     SwapBuffers();
-}
-
-void glcanvas::moveToView()
-{
-    double angle = acos(-direct.z / length(direct));
-    DPoint v = cross(direct, DPoint(0, 0, -1));
-    if (dcmp(length(v)) == 0 && direct.z > 0)
-        v = DPoint(0, 1, 0);
-    glRotated(angle / M_PI * 180, v.x, v.y, v.z);
-    glTranslated(-center.x, -center.y, -center.z);
 }
 
 void glcanvas::showGrid()
@@ -194,7 +197,8 @@ void glcanvas::showGrid()
     int width = clientsize.x * view_range, height = clientsize.y * view_range;
     ++width, ++height;
     int deep = std::min(width, height);
-    glPushAttrib(GL_COLOR_BUFFER_BIT);
+    width = height = std::max(width, height);
+    /*glPushAttrib(GL_COLOR_BUFFER_BIT);
     glColor4f(0.3, 0.3, 0.3, 0.3);
     glBegin(GL_LINES);
     for (int x = -width; x <= width; ++x)
@@ -216,7 +220,7 @@ void glcanvas::showGrid()
             glVertex3d(width, y, z);
         }
     glEnd();
-    glPopAttrib();
+    glPopAttrib();*/
 
     glColor3f(1, 0, 0);
     glBegin(GL_LINES);
@@ -249,6 +253,7 @@ void glcanvas::glResize()
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     int deep = std::min(width, height);
+    width = height = std::max(width, height);
     glOrtho(-width * view_range, width * view_range, -height * view_range, height * view_range, -deep * view_range, deep * view_range);
     Refresh();
 }

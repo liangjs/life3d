@@ -33,10 +33,9 @@ private:
     bool glinited;
     wxGLContext *glRC;
     double view_range;
-    DPoint center, direct;
+    DPoint center, direct, head;
     wxPoint dragS;
     wxTimer timer;
-    void moveToView();
     void glResize();
     void showGrid();
     void glinit();

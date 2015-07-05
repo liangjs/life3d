@@ -34,7 +34,6 @@ private:
     wxGLContext *glRC;
     double view_range;
     DPoint center, direct, head;
-    wxPoint dragS;
     wxTimer timer;
     Board *a;
     void glResize();

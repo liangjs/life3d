@@ -2,6 +2,7 @@
 #include <climits>
 #include <GL/gl.h>
 #include <GL/glu.h>
+#include <GL/glut.h>
 #include <algorithm>
 
 BEGIN_EVENT_TABLE(life3dFrame, wxFrame)
@@ -66,13 +67,15 @@ BEGIN_EVENT_TABLE(glcanvas, wxGLCanvas)
 END_EVENT_TABLE()
 
 glcanvas::glcanvas(life3dFrame *parent)
-    : wxGLCanvas(parent, wxID_ANY, NULL, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE, wxEmptyString), glinited(false), view_range(0.3), timer(this, TimerID)
+    : wxGLCanvas(parent, wxID_ANY, NULL, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE, wxEmptyString), glinited(false), view_range(300), timer(this, TimerID)
 {
     glRC = new wxGLContext(this);
     timer.Start(1);
-    direct = DPoint(0, 0, -1);
-    head = DPoint(0, 1, 0);
+    center = DPoint(0, -100, 0);
+    direct = DPoint(0, 1, 0);
+    head = DPoint(0, 0, 1);
     a = new Board;
+    SetCursor(wxCursor(wxCURSOR_BLANK));
 }
 
 glcanvas::~glcanvas()
@@ -106,6 +109,27 @@ void glcanvas::OnKey(wxKeyEvent &event)
             parent->fresh_speed();
         }
     }
+    else if (key == 'w' || key == 's')
+    {
+        double ft = key == 'w' ? 1 : -1;
+        ft *= view_range / 1000;
+        direct = direct / length(direct);
+        center = center + direct * ft;
+    }
+    else if (key == 'a' || key == 'd')
+    {
+        double ft = key == 'a' ? 1 : -1;
+        ft *= view_range / 1000;
+        DPoint v = cross(head, direct);
+        center = center + v / length(v) * ft;
+    }
+    else if (key == 'q' || key == 'z')
+    {
+        double ft = key == 'q' ? 1 : -1;
+        ft *= view_range / 1000;
+        head = head / length(head);
+        center = center + head * ft;
+    }
     else
         event.Skip();
 }
@@ -123,7 +147,7 @@ void glcanvas::OnMouseWheel(wxMouseEvent &event)
     }
     while (wheel_lines > 0)
     {
-        view_range = std::max(view_range / 1.1, 1e-10);
+        view_range = std::max(view_range / 1.1, 1.0);
         --wheel_lines;
     }
     glResize();
@@ -131,49 +155,29 @@ void glcanvas::OnMouseWheel(wxMouseEvent &event)
 
 void glcanvas::OnMouseMove(wxMouseEvent &event)
 {
-    if (!event.Dragging())
+    wxPoint dragS(clientsize.x / 2, clientsize.y / 2);
+    wxPoint dragT(event.GetX(), event.GetY());
+    if (dragT == dragS)
         return;
-    if (event.RightIsDown())
+    DPoint p;
+    p.x = double(dragT.x - dragS.x) / clientsize.x;
+    p.y = double(dragS.y - dragT.y) / clientsize.y;
+    DPoint v = cross(p, DPoint(0, 0, -1));
+    if (dcmp(length(v)))
     {
-        wxPoint dragT(event.GetX(), event.GetY());
-        if (event.ControlDown())
-        {
-            DPoint p;
-            p.x = double(dragT.x - dragS.x) / clientsize.x;
-            p.y = double(dragS.y - dragT.y) / clientsize.y;
-            DPoint v = cross(p, DPoint(0, 0, -1));
-            if (dcmp(length(v)))
-            {
-                double angle = asin(length(p) / sqrt(2)) * 2;
-                DPoint newdir = rotate(DPoint(0, 0, -1), v, -angle);
-                DPoint newhead = rotate(DPoint(0, 1, 0), v, -angle);
-                DPoint Uy = head, Uz = direct * -1, Ux = cross(Uy, Uz);
-                direct = Ux * newdir.x + Uy * newdir.y + Uz * newdir.z;
-                head = Ux * newhead.x + Uy * newhead.y + Uz * newhead.z;
-            }
-        }
-        else
-        {
-            DPoint v = cross(direct, DPoint(0, 0, -1));
-            if (dcmp(length(v)) == 0)
-                v = DPoint(0, 1, 0);
-            DPoint p;
-            p.x = (dragS.x - dragT.x) * view_range * 1000 / clientsize.x;
-            p.y = (dragT.y - dragS.y) * view_range * 1000 / clientsize.y;
-            center = center + cross(head, direct * -1) * p.x + head * p.y;
-        }
-        dragS = dragT;
+        double angle = asin(length(p) / sqrt(2)) * 2;
+        DPoint newdir = rotate(DPoint(0, 0, -1), v, -angle);
+        DPoint newhead = rotate(DPoint(0, 1, 0), v, -angle);
+        DPoint Uy = head, Uz = direct * -1, Ux = cross(Uy, Uz);
+        direct = Ux * newdir.x + Uy * newdir.y + Uz * newdir.z;
+        head = Ux * newhead.x + Uy * newhead.y + Uz * newhead.z;
     }
-    else if (event.LeftIsDown())
-    {
-
-    }
+    WarpPointer(clientsize.x / 2, clientsize.y / 2);
     Refresh();
 }
 
 void glcanvas::OnRightDown(wxMouseEvent &event)
 {
-    dragS.x = event.GetX(), dragS.y = event.GetY();
 }
 
 void glcanvas::OnPaint(wxPaintEvent &event)
@@ -203,26 +207,40 @@ void glcanvas::showLife()
         for (auto i = data->a[*j].begin(); i != data->a[*j].end(); ++i)
         {
             double x = i->x, y = i->y, z = i->z;
+            float ambientLight[4];
+            ambientLight[3] = 1;
+            ambientLight[0] = 1, ambientLight[1] = 0, ambientLight[2] = 0;
+            glMaterialfv(GL_FRONT, GL_AMBIENT, ambientLight);
             showRec(DPoint(x + bsize, y + bsize, z + bsize), DPoint(x + bsize, y - bsize, z + bsize), DPoint(x - bsize, y - bsize, z + bsize), DPoint(x - bsize, y + bsize, z + bsize));
+            ambientLight[0] = 0, ambientLight[1] = 1, ambientLight[2] = 0;
+            glMaterialfv(GL_FRONT, GL_AMBIENT, ambientLight);
             showRec(DPoint(x + bsize, y + bsize, z - bsize), DPoint(x + bsize, y - bsize, z - bsize), DPoint(x - bsize, y - bsize, z - bsize), DPoint(x - bsize, y + bsize, z - bsize));
+            ambientLight[0] = 0, ambientLight[1] = 0, ambientLight[2] = 1;
+            glMaterialfv(GL_FRONT, GL_AMBIENT, ambientLight);
             showRec(DPoint(x + bsize, y + bsize, z + bsize), DPoint(x + bsize, y + bsize, z - bsize), DPoint(x + bsize, y - bsize, z - bsize), DPoint(x + bsize, y - bsize, z + bsize));
+            ambientLight[0] = 1, ambientLight[1] = 1, ambientLight[2] = 0;
+            glMaterialfv(GL_FRONT, GL_AMBIENT, ambientLight);
             showRec(DPoint(x - bsize, y + bsize, z + bsize), DPoint(x - bsize, y + bsize, z - bsize), DPoint(x - bsize, y - bsize, z - bsize), DPoint(x - bsize, y - bsize, z + bsize));
+            ambientLight[0] = 1, ambientLight[1] = 0, ambientLight[2] = 1;
+            glMaterialfv(GL_FRONT, GL_AMBIENT, ambientLight);
             showRec(DPoint(x + bsize, y + bsize, z + bsize), DPoint(x + bsize, y + bsize, z - bsize), DPoint(x - bsize, y + bsize, z - bsize), DPoint(x - bsize, y + bsize, z + bsize));
+            ambientLight[0] = 0, ambientLight[1] = 1, ambientLight[2] = 1;
+            glMaterialfv(GL_FRONT, GL_AMBIENT, ambientLight);
             showRec(DPoint(x + bsize, y - bsize, z + bsize), DPoint(x + bsize, y - bsize, z - bsize), DPoint(x - bsize, y - bsize, z - bsize), DPoint(x - bsize, y - bsize, z + bsize));
         }
 }
 
 void glcanvas::showRec(const DPoint &p1, const DPoint &p2, const DPoint &p3, const DPoint &p4)
 {
-    glColor4f(0.6, 0.6, 0, 1);
+    /*glColor4f(1, 0, 0, 1);
     glBegin(GL_LINE_LOOP);
     glVertex3d(p1.x, p1.y, p1.z);
     glVertex3d(p2.x, p2.y, p2.z);
     glVertex3d(p3.x, p3.y, p3.z);
     glVertex3d(p4.x, p4.y, p4.z);
-    glEnd();
-    glColor4f(0.7, 0.7, 0.7, 0.7);
-    glBegin(GL_POLYGON);
+    glEnd();*/
+    glColor4f(1, 1, 1, 1);
+    glBegin(GL_QUADS);
     glVertex3d(p1.x, p1.y, p1.z);
     glVertex3d(p2.x, p2.y, p2.z);
     glVertex3d(p3.x, p3.y, p3.z);
@@ -235,16 +253,23 @@ void glcanvas::glinit()
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
+    float ambientLight[4] = {1, 1, 1, 1};
+    glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
 }
 
 void glcanvas::glResize()
 {
-    int width = clientsize.x, height = clientsize.y;
+    double width = clientsize.x, height = clientsize.y;
     glViewport(0, 0, width, height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    int deep = std::min(width, height);
-    glOrtho(-width * view_range, width * view_range, -height * view_range, height * view_range, -deep * view_range, deep * view_range);
+    /*if (width < height)
+        glOrtho(-view_range, view_range, 0, height / width * view_range, -view_range, view_range);
+    else
+        glOrtho(width / height * -view_range, width / height * view_range, 0, view_range, -view_range, view_range);*/
+    gluPerspective(60, width / height, 0, view_range);
     Refresh();
 }
 

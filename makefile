@@ -1,4 +1,4 @@
-LIBS = `wx-config --libs core,base,gl` -lGL -lGLU
+LIBS = `wx-config --libs core,base,gl` -lGL -lGLU -lglut
 OBJ = app.o main.o core.o
 BIN = life3d
 CXXFLAGS = `wx-config --cxxflags` -g -Wall -std=c++11

@@ -56,8 +56,8 @@ Board::Board()
     data = new HashSet;
     tmp = new HashSet;
     mp = new HashMap;
-    for (int i = -50; i <= 50; ++i)
-    for (int j = -30; j <= 10; ++j)
+    for (int i = -10; i <= 10; ++i)
+    for (int j = -10; j <= 10; ++j)
     for (int k = -10; k <= 10; ++k)
         if (rand() % 2)
             data->insert(Point(i, j, k));

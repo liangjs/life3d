@@ -25,7 +25,7 @@ private:
 class glcanvas: public wxGLCanvas
 {
 public:
-    glcanvas(life3dFrame *parent);
+    glcanvas(life3dFrame *parent, int *args);
     ~glcanvas();
 private:
     static const int TimerID = 1000;
@@ -38,6 +38,7 @@ private:
     Board *a;
     void glResize();
     void showRec(const DPoint &p1, const DPoint &p2, const DPoint &p3, const DPoint &p4);
+    //void showRec(double x, double y, double z);
     void showLife();
     void glinit();
     void OnPaint(wxPaintEvent &event);

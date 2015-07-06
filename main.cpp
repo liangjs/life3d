@@ -26,7 +26,8 @@ life3dFrame::life3dFrame(wxFrame *frame, const wxString &title)
     CreateStatusBar(2);
     SetStatusText("Ready", 0);
     SetStatusText(wxString::Format("Speed:%dx", speed), 1);
-    glcanvas *canvas = new glcanvas(this);
+    int *args = new int[5] {WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, 16, 0};
+    glcanvas *canvas = new glcanvas(this, args);
     Center();
     Maximize();
     canvas->SetFocus();
@@ -66,12 +67,12 @@ BEGIN_EVENT_TABLE(glcanvas, wxGLCanvas)
     EVT_RIGHT_DOWN(glcanvas::OnRightDown)
 END_EVENT_TABLE()
 
-glcanvas::glcanvas(life3dFrame *parent)
-    : wxGLCanvas(parent, wxID_ANY, NULL, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE, wxEmptyString), glinited(false), view_range(300), timer(this, TimerID)
+glcanvas::glcanvas(life3dFrame *parent, int *args)
+    : wxGLCanvas(parent, wxID_ANY, args, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE, wxEmptyString), glinited(false), view_range(100), timer(this, TimerID)
 {
     glRC = new wxGLContext(this);
     timer.Start(1);
-    center = DPoint(0, -100, 0);
+    center = DPoint(0, -50, 0);
     direct = DPoint(0, 1, 0);
     head = DPoint(0, 0, 1);
     a = new Board;
@@ -193,45 +194,78 @@ void glcanvas::OnPaint(wxPaintEvent &event)
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     gluLookAt(center.x, center.y, center.z, center.x + direct.x, center.y + direct.y, center.z + direct.z, head.x, head.y, head.z);
+    /*static double x = 0;
+    x+=1;
+    glRotated(x, 0.2, 1, 0);
+    glColor3f(1, 0, 0);
+    glBegin(GL_QUADS);
+    glVertex3d(0.9, 0.9, 0.9);
+    glVertex3d(0.9, -0.9, 0.9);
+    glVertex3d(-0.9, -0.9, 0.9);
+    glVertex3d(-0.9, 0.9, 0.9);
+    glEnd();
+    glColor3f(0, 1, 0);
+    glBegin(GL_QUADS);
+    glVertex3d(-0.9, 0.9, -0.9);
+    glVertex3d(-0.9, -0.9, -0.9);
+    glVertex3d(0.9, -0.9, -0.9);
+    glVertex3d(0.9, 0.9, -0.9);
+    glEnd();*/
     showLife();
     a->run();
     glFlush();
     SwapBuffers();
 }
-
+int rand(int l,int r){return rand()%(r-l+1)+l;}
 void glcanvas::showLife()
 {
+    //glColor4f(1, 1, 1, 1);
+    //showRec(DPoint(30, -30, 30), DPoint(30, -30, -30), DPoint(-30, -30, -30), DPoint(-30, -30, 30));
     static const double bsize = 0.45;
     auto data = a->getData();
     for (auto j = data->pos.begin(); j != data->pos.end(); ++j)
         for (auto i = data->a[*j].begin(); i != data->a[*j].end(); ++i)
         {
+            //drawRec(i->x, i->y, i->z);
             double x = i->x, y = i->y, z = i->z;
-            float ambientLight[4];
-            ambientLight[3] = 1;
-            ambientLight[0] = 1, ambientLight[1] = 0, ambientLight[2] = 0;
-            glMaterialfv(GL_FRONT, GL_AMBIENT, ambientLight);
+            GLubyte ambientLight[4];
+            ambientLight[3] = 200;
+            ambientLight[0] = 0x66, ambientLight[1] = 0xcc, ambientLight[2] = 0xff;
+            ambientLight[0] += labs(i->x % 4 - 2) * 10, ambientLight[1] += labs(i->y % 4 - 2) * 10, ambientLight[2] += labs(i->z % 4 - 2) * 10;
+            glColor4ubv(ambientLight);
+            //glMaterialfv(GL_FRONT, GL_AMBIENT, ambientLight);
             showRec(DPoint(x + bsize, y + bsize, z + bsize), DPoint(x + bsize, y - bsize, z + bsize), DPoint(x - bsize, y - bsize, z + bsize), DPoint(x - bsize, y + bsize, z + bsize));
-            ambientLight[0] = 0, ambientLight[1] = 1, ambientLight[2] = 0;
-            glMaterialfv(GL_FRONT, GL_AMBIENT, ambientLight);
-            showRec(DPoint(x + bsize, y + bsize, z - bsize), DPoint(x + bsize, y - bsize, z - bsize), DPoint(x - bsize, y - bsize, z - bsize), DPoint(x - bsize, y + bsize, z - bsize));
-            ambientLight[0] = 0, ambientLight[1] = 0, ambientLight[2] = 1;
-            glMaterialfv(GL_FRONT, GL_AMBIENT, ambientLight);
+            //ambientLight[0] = 0, ambientLight[1] = 1, ambientLight[2] = 0;
+            glColor4ubv(ambientLight);
+            //glMaterialfv(GL_FRONT, GL_AMBIENT, ambientLight);
+            showRec(DPoint(x - bsize, y + bsize, z - bsize), DPoint(x - bsize, y - bsize, z - bsize), DPoint(x + bsize, y - bsize, z - bsize), DPoint(x + bsize, y + bsize, z - bsize));
+            //ambientLight[0] = 0, ambientLight[1] = 0, ambientLight[2] = 1;
+            glColor4ubv(ambientLight);
+            //glMaterialfv(GL_FRONT, GL_AMBIENT, ambientLight);
             showRec(DPoint(x + bsize, y + bsize, z + bsize), DPoint(x + bsize, y + bsize, z - bsize), DPoint(x + bsize, y - bsize, z - bsize), DPoint(x + bsize, y - bsize, z + bsize));
-            ambientLight[0] = 1, ambientLight[1] = 1, ambientLight[2] = 0;
-            glMaterialfv(GL_FRONT, GL_AMBIENT, ambientLight);
-            showRec(DPoint(x - bsize, y + bsize, z + bsize), DPoint(x - bsize, y + bsize, z - bsize), DPoint(x - bsize, y - bsize, z - bsize), DPoint(x - bsize, y - bsize, z + bsize));
-            ambientLight[0] = 1, ambientLight[1] = 0, ambientLight[2] = 1;
-            glMaterialfv(GL_FRONT, GL_AMBIENT, ambientLight);
+            //ambientLight[0] = 1, ambientLight[1] = 1, ambientLight[2] = 0;
+            glColor4ubv(ambientLight);
+            //glMaterialfv(GL_FRONT, GL_AMBIENT, ambientLight);
+            showRec(DPoint(x - bsize, y - bsize, z + bsize), DPoint(x - bsize, y - bsize, z - bsize), DPoint(x - bsize, y + bsize, z - bsize), DPoint(x - bsize, y + bsize, z + bsize));
+            //ambientLight[0] = 1, ambientLight[1] = 0, ambientLight[2] = 1;
+            glColor4ubv(ambientLight);
+            //glMaterialfv(GL_FRONT, GL_AMBIENT, ambientLight);
             showRec(DPoint(x + bsize, y + bsize, z + bsize), DPoint(x + bsize, y + bsize, z - bsize), DPoint(x - bsize, y + bsize, z - bsize), DPoint(x - bsize, y + bsize, z + bsize));
-            ambientLight[0] = 0, ambientLight[1] = 1, ambientLight[2] = 1;
-            glMaterialfv(GL_FRONT, GL_AMBIENT, ambientLight);
-            showRec(DPoint(x + bsize, y - bsize, z + bsize), DPoint(x + bsize, y - bsize, z - bsize), DPoint(x - bsize, y - bsize, z - bsize), DPoint(x - bsize, y - bsize, z + bsize));
+            //ambientLight[0] = 0, ambientLight[1] = 1, ambientLight[2] = 1;
+            glColor4ubv(ambientLight);
+            //glMaterialfv(GL_FRONT, GL_AMBIENT, ambientLight);
+            showRec(DPoint(x - bsize, y - bsize, z + bsize), DPoint(x - bsize, y - bsize, z - bsize), DPoint(x + bsize, y - bsize, z - bsize), DPoint(x + bsize, y - bsize, z + bsize));
         }
 }
 
 void glcanvas::showRec(const DPoint &p1, const DPoint &p2, const DPoint &p3, const DPoint &p4)
 {
+    glBegin(GL_QUADS);
+    glVertex3d(p1.x, p1.y, p1.z);
+    glVertex3d(p2.x, p2.y, p2.z);
+    glVertex3d(p3.x, p3.y, p3.z);
+    glVertex3d(p4.x, p4.y, p4.z);
+    glEnd();
     /*glColor4f(1, 0, 0, 1);
     glBegin(GL_LINE_LOOP);
     glVertex3d(p1.x, p1.y, p1.z);
@@ -239,24 +273,30 @@ void glcanvas::showRec(const DPoint &p1, const DPoint &p2, const DPoint &p3, con
     glVertex3d(p3.x, p3.y, p3.z);
     glVertex3d(p4.x, p4.y, p4.z);
     glEnd();*/
-    glColor4f(1, 1, 1, 1);
-    glBegin(GL_QUADS);
-    glVertex3d(p1.x, p1.y, p1.z);
-    glVertex3d(p2.x, p2.y, p2.z);
-    glVertex3d(p3.x, p3.y, p3.z);
-    glVertex3d(p4.x, p4.y, p4.z);
-    glEnd();
 }
+
+/*void glcanvas::showRec(double x, double y, double z)
+{
+    static int lst0 = -1, lst = -1;
+    if (lst == -1)
+    {
+        lst0 = 1;
+        glNewList(lst0, GL_COMPILE);
+        glEndList(lst0);
+        lst = 2;
+    }
+}*/
 
 void glcanvas::glinit()
 {
+    glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_LIGHTING);
+    glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+    /*glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
     float ambientLight[4] = {1, 1, 1, 1};
-    glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
+    glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);*/
 }
 
 void glcanvas::glResize()
@@ -265,11 +305,7 @@ void glcanvas::glResize()
     glViewport(0, 0, width, height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    /*if (width < height)
-        glOrtho(-view_range, view_range, 0, height / width * view_range, -view_range, view_range);
-    else
-        glOrtho(width / height * -view_range, width / height * view_range, 0, view_range, -view_range, view_range);*/
-    gluPerspective(60, width / height, 0, view_range);
+    gluPerspective(60, width / height, 0.05, view_range);
     Refresh();
 }
 

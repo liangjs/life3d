@@ -37,8 +37,8 @@ private:
     wxTimer timer;
     Board *a;
     void glResize();
-    void showRec(const DPoint &p1, const DPoint &p2, const DPoint &p3, const DPoint &p4);
-    //void showRec(double x, double y, double z);
+    //void showRec(const DPoint &p1, const DPoint &p2, const DPoint &p3, const DPoint &p4);
+    void showRec(double x, double y, double z);
     void showLife();
     void glinit();
     void OnPaint(wxPaintEvent &event);

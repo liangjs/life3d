@@ -103,19 +103,30 @@ void Board::run()
     for (auto i = mp->pos.begin(); i != mp->pos.end(); ++i)
         for (auto j = mp->a[*i].begin(); j != mp->a[*i].end(); ++j)
             if (getStatus(j->second, data->have(j->first, *i)))
-                tmp->insert(j->first, *i, true);
+                if (checkPos(j->first))
+                    tmp->insert(j->first, *i, true);
     std::swap(tmp, data);
 }
 
 inline bool Board::getStatus(int cnt, bool old)
 {
+    /*
     if (cnt > 13)
-        return false;
-    if (cnt > 9)
-        return true;
-    if (cnt > 6)
+        return false;*/
+    if (4 <= cnt && cnt <= 6)
         return old;
-    return false;
+    if (7 <= cnt && cnt <= 13)
+        return 1;
+    return 0;
+    /*
+    if(cnt == 2)return old;
+    else if(cnt == 3)return 1;
+    else return 0;*/
+}
+
+inline bool Board::checkPos(const Point &a)
+{
+    return labs(a.x) <= 50 && labs(a.y) <= 50 && labs(a.z) <= 50;
 }
 
 DPoint rotate(const DPoint &p, const DPoint &v, double angle)

@@ -42,6 +42,7 @@ private:
     HashSet *data, *tmp;
     HashMap *mp;
     inline bool getStatus(int cnt, bool old);
+    inline bool checkPos(const Point &a);
 public:
     Board();
     ~Board();

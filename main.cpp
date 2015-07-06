@@ -68,13 +68,16 @@ BEGIN_EVENT_TABLE(glcanvas, wxGLCanvas)
 END_EVENT_TABLE()
 
 glcanvas::glcanvas(life3dFrame *parent, int *args)
-    : wxGLCanvas(parent, wxID_ANY, args, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE, wxEmptyString), glinited(false), view_range(100), timer(this, TimerID)
+    : wxGLCanvas(parent, wxID_ANY, args, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE, wxEmptyString), glinited(false), view_range(400), timer(this, TimerID)
 {
     glRC = new wxGLContext(this);
     timer.Start(1);
-    center = DPoint(0, -50, 0);
+    /*center = DPoint(0, -50, 0);
     direct = DPoint(0, 1, 0);
-    head = DPoint(0, 0, 1);
+    head = DPoint(0, 0, 1);*/
+    center = DPoint(0, 0, 50);
+    direct = DPoint(0, 0, -1);
+    head = DPoint(0, 1, 0);
     a = new Board;
     SetCursor(wxCursor(wxCURSOR_BLANK));
 }
@@ -226,8 +229,8 @@ void glcanvas::showLife()
     for (auto j = data->pos.begin(); j != data->pos.end(); ++j)
         for (auto i = data->a[*j].begin(); i != data->a[*j].end(); ++i)
         {
-            //drawRec(i->x, i->y, i->z);
-            double x = i->x, y = i->y, z = i->z;
+            showRec(i->x, i->y, i->z);
+            /*double x = i->x, y = i->y, z = i->z;
             GLubyte ambientLight[4];
             ambientLight[3] = 200;
             ambientLight[0] = 0x66, ambientLight[1] = 0xcc, ambientLight[2] = 0xff;
@@ -254,11 +257,11 @@ void glcanvas::showLife()
             //ambientLight[0] = 0, ambientLight[1] = 1, ambientLight[2] = 1;
             glColor4ubv(ambientLight);
             //glMaterialfv(GL_FRONT, GL_AMBIENT, ambientLight);
-            showRec(DPoint(x - bsize, y - bsize, z + bsize), DPoint(x - bsize, y - bsize, z - bsize), DPoint(x + bsize, y - bsize, z - bsize), DPoint(x + bsize, y - bsize, z + bsize));
+            showRec(DPoint(x - bsize, y - bsize, z + bsize), DPoint(x - bsize, y - bsize, z - bsize), DPoint(x + bsize, y - bsize, z - bsize), DPoint(x + bsize, y - bsize, z + bsize));*/
         }
 }
 
-void glcanvas::showRec(const DPoint &p1, const DPoint &p2, const DPoint &p3, const DPoint &p4)
+/*void glcanvas::showRec(const DPoint &p1, const DPoint &p2, const DPoint &p3, const DPoint &p4)
 {
     glBegin(GL_QUADS);
     glVertex3d(p1.x, p1.y, p1.z);
@@ -266,26 +269,78 @@ void glcanvas::showRec(const DPoint &p1, const DPoint &p2, const DPoint &p3, con
     glVertex3d(p3.x, p3.y, p3.z);
     glVertex3d(p4.x, p4.y, p4.z);
     glEnd();
-    /*glColor4f(1, 0, 0, 1);
+    glColor4f(1, 0, 0, 1);
     glBegin(GL_LINE_LOOP);
     glVertex3d(p1.x, p1.y, p1.z);
     glVertex3d(p2.x, p2.y, p2.z);
     glVertex3d(p3.x, p3.y, p3.z);
     glVertex3d(p4.x, p4.y, p4.z);
-    glEnd();*/
-}
+    glEnd();
+}*/
 
-/*void glcanvas::showRec(double x, double y, double z)
+void glcanvas::showRec(double x, double y, double z)
 {
     static int lst0 = -1, lst = -1;
     if (lst == -1)
     {
+        double sz = 0.4;
         lst0 = 1;
         glNewList(lst0, GL_COMPILE);
-        glEndList(lst0);
+        glBegin(GL_QUADS);
+        glVertex3d(sz, sz, sz);
+        glVertex3d(sz, -sz, sz);
+        glVertex3d(-sz, -sz, sz);
+        glVertex3d(-sz, sz, sz);
+        glEnd();
+        glEndList();
         lst = 2;
+        glNewList(lst, GL_COMPILE);
+        
+        glCallList(lst0);
+
+        glPushMatrix();
+        glRotated(180, 1, 0, 0);
+        glCallList(lst0);
+        glPopMatrix();
+
+        glPushMatrix();
+        glRotated(90, 1, 0, 0);
+        glCallList(lst0);
+        glPopMatrix();
+
+        glPushMatrix();
+        glRotated(-90, 1, 0, 0);
+        glCallList(lst0);
+        glPopMatrix();
+
+        glPushMatrix();
+        glRotated(90, 0, 1, 0);
+        glCallList(lst0);
+        glPopMatrix();
+
+        glPushMatrix();
+        glRotated(-90, 0, -1, 0);
+        glCallList(lst0);
+        glPopMatrix();
+
+        glEndList();
     }
-}*/
+    glPushMatrix();
+    glTranslated(x, y, z);
+    GLubyte c[4] = {82, 184, 235, 234};
+    int x2 = (int)x % 30 - 15;
+    int y2 = (int)y % 30 - 15;
+    int z2 = (int)z % 30 - 15;
+    x2 = labs(x2), y2 = labs(y2), z2 = labs(z2);
+    c[0] += x2 * 20, c[1] += y2 * 20, c[2] += z2 * 20;
+    c[0] %= 256*2, c[1] %= 256*2, c[2] %= 256*2;
+    c[0] = labs(c[0] - 256);
+    c[1] = labs(c[1] - 256);
+    c[2] = labs(c[2] - 256);
+    glColor4ubv(c);
+    glCallList(lst);
+    glPopMatrix();
+}
 
 void glcanvas::glinit()
 {
@@ -305,7 +360,7 @@ void glcanvas::glResize()
     glViewport(0, 0, width, height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(60, width / height, 0.05, view_range);
+    gluPerspective(60, width / height, 0.1, view_range);
     Refresh();
 }
 
